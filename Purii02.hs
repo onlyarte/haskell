@@ -32,6 +32,8 @@ findIndices :: (Int -> Bool) -> [Int] -> [Int]
 findIndices p lx = map fst $ filter (p.snd) indexed
     where
         indexed = zip [0..] lx
+-- list former
+-- findIndices p lx = [p1 | (p1,p2) <- zip [0..] lx, p p2]
 
 -- Task 6 -----------------------------------------
 allReverse :: [String] -> [String]
@@ -50,6 +52,8 @@ cntGood px v =
             if (head px) v
                 then 1 + cntGood (tail px) v
                 else cntGood (tail px) v
+--cntGood px v = length(filter ($v) px)
+--cntGood px v = length(filter (\p -> p v) px)
 
 -- Task 9 ------------------------------------------
 triangle :: [Integer]

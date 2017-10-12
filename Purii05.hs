@@ -4,7 +4,8 @@ module Purii05 where
 -- Задача 1 -----------------------------------------
 getFirstN :: String -> String -> String
 getFirstN file ns
-    | null n || not (null (snd $ head n)) = "error"
+    | null n
+        || not (null (filter (not . (`elem` " ")) (snd $ head n))) = "error"
     | otherwise = unlines $ take (fst $ head n) (lines file)
     where n = reads ns::[(Int, String)]
 
@@ -20,7 +21,8 @@ firstN = do
 -- Задача 2 -----------------------------------------
 getTailN :: String -> String -> String
 getTailN file ns
-    | null n || not (null (snd $ head n)) = "error"
+    | null n
+        || not (null (filter (not . (`elem` " ")) (snd $ head n))) = "error"
     | otherwise = unlines $ lastN $ lines file
     where
         n = reads ns::[(Int, String)]
@@ -39,7 +41,10 @@ tailN = do
 
 getSum2 :: String -> String -> String
 getSum2 s1 s2
-    | null arg1 || null arg2 || not (null (snd $ head arg1)) || not (null (snd $ head arg2)) = "error"
+    | null arg1
+        || null arg2
+            || not (null (filter (not . (`elem` " ")) (snd $ head arg1)))
+                || not (null (filter (not . (`elem` " ")) (snd $ head arg2))) = "error"
     | otherwise = show $ (fst $ head arg1) + (fst $ head arg2)
     where
         arg1 = reads s1::[(Int, String)]
@@ -85,5 +90,18 @@ equation = do
     putStrLn $ getEquation args
 
 -- Задача 5 -----------------------------------------
+checkBalance :: String -> Int -> String
+checkBalance file blnc
+    | blnc < 0 = "Not balanced"
+    | null file && blnc == 0 = "Is balanced"
+    | null file = "Not balanced"
+    | head file == '(' = checkBalance (tail file) (blnc + 1)
+    | head file == ')' = checkBalance (tail file) (blnc - 1)
+    | otherwise = checkBalance (tail file) blnc
+
 balance :: IO()
-balance = undefined
+balance = do
+    putStr "File> "
+    fileName <- getLine
+    file <- readFile fileName
+    putStrLn $ checkBalance file 0

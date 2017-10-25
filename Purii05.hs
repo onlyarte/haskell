@@ -62,7 +62,7 @@ sum2 = do
 computeEquation :: Double -> Double -> Double -> String
 computeEquation a b c
     | a == 0 && b == 0 && c == 0 = "many"
-    | a == 0 && b == 0 = "error"
+    | a == 0 && b == 0 = "no"
     | a == 0 = show (-c / b)
     | b == 0 && c == 0 = "x = 0"
     | c == 0 = "x1 = 0   x2 = " ++ show (-b / a)

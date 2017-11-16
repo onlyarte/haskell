@@ -14,10 +14,12 @@ instance (Num a, Eq a) => Eq (Poly a) where
     (P l1) == (P l2) = (dropEndZeros l1) == (dropEndZeros l2)
 
 dropEndZeros :: (Num a, Eq a) => [a] -> [a]
-dropEndZeros [] = []
-dropEndZeros (h:t)
-        | h == 0 && null t = []
-        | otherwise = h : (dropEndZeros t)
+dropEndZeros ls
+        | isEmpty ls = []
+        | otherwise = (head ls) : dropEndZeros (tail ls)
+        where
+            isEmpty [] = True
+            isEmpty (h:t) = h == 0 && isEmpty t
 
 -- Задача 3 -----------------------------------------
 

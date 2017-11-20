@@ -5,25 +5,40 @@ import Text.ParserCombinators.Parsec
 import Data.Char
 
 -- Задача 1 -----------------------------------------
-numbers:: String -> Maybe [Double]
-numbers str = if (check str) then case (parse (commaSep numbr) "" str) of
- Left _ -> Nothing
- Right xs -> Just xs 
- else Nothing
+numbers  :: String -> Maybe [Double]
+numbers str
+        | (foldl (&&) True (map (\x -> fst x) (map (\y -> nmbr y) splited))) == False = Nothing
+        | otherwise = Just $ map (\x -> snd x) (map (\y -> nmbr y) splited)
+    where
+      nmbr str0 = 
+        if (null $ filter (/= ' ') $ snd (readNmbr str0)) 
+          then (True, (fst (readNmbr str0)))
+          else
+            if (head $ snd (readNmbr str0)) == '/'
+              then 
+                if (null $ filter (/= ' ') $ snd (readNmbr (tail $ snd (readNmbr str0))))
+                  then (True, ((fst (readNmbr str0)) / (fst (readNmbr (tail $ snd (readNmbr str0))))))
+                  else (False, 0)
+              else (False, 0)
+      readNmbr str0 = head (reads str0 :: [(Double, String)])
+      splited = split (==';') str
 
-commaSep :: Parser a -> Parser [a]
-commaSep p  = p `sepBy1` (char ';')
-
-numbr :: Parser Double
-numbr = do {cs <- many1 (digit<|>(char '.')<|>space); return (read (filter (/=' ') cs))}
-
-check:: String -> Bool
-check xs = if null (filter (/=';')(filter (/=' ')(filter (noDigit) (filter (/='.') xs)))) then True else False
-
-noDigit:: Char -> Bool
-noDigit c = if (isDigit c) then False else True
+split :: (Char -> Bool) -> String -> [String]
+split p s =
+  case dropWhile p s of
+      "" -> []
+      s' -> w : split p s''
+          where (w, s'') = break p s'
 
 -- Задача 2 ----------------------------------------- 
+balance  :: String -> String
+balance str =   case parse (blnc >> eof) "" (filter (`elem` ['(',')','[',']','{','}']) str) of
+                    Left _ -> "No balanced"
+                    Right _ -> "Is balanced"
+                where 
+                    blnc = many parens >> return ()
+                    parens = choice [ between (char opening) (char closing) blnc
+                                  | [opening, closing] <- ["()", "[]", "{}"]]
 
 ----------------  Мова SPL  ------------   
 data Expression =
@@ -64,6 +79,7 @@ identifier = try( do {name <- iden;
                          then unexpected ("reserved word " ++ show name)
                          else return name 
                      } )          
+
 oper  :: String -> Bop -> Parser Bop
 oper str bop = do {_ <- string str; return bop}
 
@@ -83,12 +99,12 @@ symbol :: Char ->  Parser ()
 symbol ch = lexem (char ch >> return ())
 
 keyword :: String -> Parser ()
-keyword st = try( lexem( string st >> notFollowedBy alphaNum))
+keyword st = try( lexem( string st >> notFollowedBy alphaNum))  
 
 -- Задача 3 -----------------------------------------
+
 iden :: Parser String
 iden =  do
-          spaces
           c <- letter
           cs <- many (letter<|>digit)
           return (c:cs) 
@@ -132,15 +148,13 @@ factor = do { symbol '('; x <- expr; symbol ')'; return x}
 
 -- Задача 4 -----------------------------------------
 term :: Parser Expression     
-term  = factor `chainl1` (exprOp mulOp) <?> "term" 
+term  = factor `chainl1` (exprOp mulOp) <?> "term"
 
 simple :: Parser Expression
 simple = term `chainl1` (exprOp addOp) <?> "simple" 
 
 expr :: Parser Expression
-expr = do {s <- simple; o <- relOp; s1<-simple; return (Op s o s1)} 
-        <|> do {nm <- lexem number; return (Val nm)} <|> do {cs <- lexem identifier; return (Var cs) } <?> "expr"
-
+expr = simple `chainl1` (exprOp relOp) <?> "expr"
 -----------------
 -- оператори
 -----------------
@@ -153,30 +167,17 @@ expr = do {s <- simple; o <- relOp; s1<-simple; return (Op s o s1)}
 -- listSt = [stmt] {';' [stmt]}   
 -----------------
 stmt :: Parser Statement 
-stmt =  do
-          keyword "for"
-          forSt 
-    <|> do
-          keyword "while"
-          whileSt
-    <|> do
-          keyword "if"
-          ifSt
-    <|> do
-          lid <- lexem identifier
-          assignSt lid
-    <|> do
-          symbol '{'
-          ls <- listSt
-          symbol '}'
-          return ls
-    <?> "stmt"
+stmt = do {keyword "for"; forSt}
+       <|> do {keyword "while"; whileSt}
+       <|> do {keyword "if"; ifSt}
+       <|> do {var <- lexem identifier; assignSt var}
+       <|> do {symbol '{'; s <- listSt; symbol '}'; return s }
+       <?> "statement"
 
 -- Задача 5 -----------------------------------------
 
 forSt :: Parser Statement 
 forSt = do 
-          spaces
           symbol '('
           sInit <- stmt
           symbol ';'
@@ -191,7 +192,6 @@ forSt = do
 
 whileSt :: Parser Statement               
 whileSt = do 
-            spaces
             symbol '('
             con <- expr
             symbol ')'
@@ -202,7 +202,6 @@ whileSt = do
               
 ifSt :: Parser Statement               
 ifSt =  do 
-          spaces
           symbol '('
           con <- expr
           symbol ')'
@@ -220,13 +219,11 @@ listSt =  stmt `chainl1` semiColon
 
 assignSt :: String -> Parser Statement 
 assignSt var =  do 
-                  spaces
                   symbol ':'
                   symbol '='
                   e <- expr
                   return (Assign var e)
-            <|> do
-                  spaces
+            <|> do 
                   symbol '+'
                   symbol '+'
                   return (Incr var)
